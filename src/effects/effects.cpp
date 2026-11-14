@@ -11,7 +11,7 @@ namespace {
 const std::vector<EffectInfo> kCatalog = {
     {"blush.tone", L"Blush Tone", "face", true, true, Cost::Low,
      "rosy grade always applies; the face treatment fades out without a face and uses box estimates without landmarks"},
-    {"beauty.basic", L"Basic Beauty", "face", true, false, Cost::Low, "fades out without a face"},
+    {"beauty.basic", L"Natural Retouch", "face", true, false, Cost::Low, "fades out without a face"},
     {"portrait.soft", L"Portrait", "portrait", true, false, Cost::Moderate, "uses a centred subject when no face is tracked"},
     {"color.warm", L"Warm Glow", "color", false, false, Cost::VeryLow, "none needed"},
     {"color.cool", L"Cool Breeze", "color", false, false, Cost::VeryLow, "none needed"},
@@ -306,8 +306,11 @@ void EffectRenderer::Beauty(const processing::Nv12Frame& f, float a, float radiu
             if (e >= 1) continue;
             const float m = std::min(1.0f, (1 - e) * 3) * a;
             const float diff = static_cast<float>(b[x]) - static_cast<float>(row[x]);
-            const float keep = std::max(0.0f, 1 - std::abs(diff) / kEdge);
-            row[x] = Clamp8(row[x] + diff * 0.85f * keep * m + 3 * m);  // smooth + a touch of glow
+            // A smooth edge gate avoids a visible threshold and preserves low-contrast facial
+            // features. The smaller lift keeps skin natural instead of adding a glow.
+            const float edgeRatio = std::abs(diff) / kEdge;
+            const float keep = std::max(0.0f, 1 - edgeRatio * edgeRatio);
+            row[x] = Clamp8(row[x] + diff * 0.70f * keep * m + 1.0f * m);
         }
     }
 }
